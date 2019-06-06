@@ -159,7 +159,6 @@ function sendNotifcation( userId, intent ){
             },
         };
 
-        console.log( tokens );
         request.post('https://actions.googleapis.com/v2/conversations:send', {
             'auth': {
             'bearer': tokens.access_token,
