@@ -33,15 +33,7 @@ process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
 
 const app = dialogflow({debug: true});
 
-const admin = require('firebase-admin');
-
-const serviceAccount = require('./adminCred.json');
-
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://notificationtest-87069.firebaseio.com/"
-}, "fulfillment" );
-
+const admin = require('./initApp');
 
 app.intent('Queue Search Request', queueSearchRequest);
 
@@ -201,8 +193,11 @@ function startSearch( conv ){
     var context = getStartSearchContext( conv );
     var parameters = convertContextToParameterSet( context );
 
+    console.log( 'Start Search' );
+
     return queueSearchRequest(parameters)
         .then(() => {
+
             var response = `Got it! A search has been initiated`;
     
             response = addGenderToResponse( parameters, response );
@@ -210,7 +205,9 @@ function startSearch( conv ){
             response = addUpperBodyToResponse( parameters, response );
             response = addLowerBodyToResponse( parameters, response );
             response = addHairToResponse( parameters, response );
-        
+            
+            console.log( response );
+
             conv.close( new SimpleResponse({
                 speech: response,
                 text: response
