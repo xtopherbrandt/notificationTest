@@ -35,6 +35,16 @@ const app = dialogflow({debug: true});
 
 const admin = require('firebase-admin');
 
+const serviceAccount = require('./adminCred.json');
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://notificationtest-87069.firebaseio.com/"
+});
+
+
+app.intent('Queue Search Request', queueSearchRequest);
+
 app.intent('Default Welcome Intent', welcome );
 app.intent('Default Fallback Intent', fallback );
 
@@ -339,6 +349,40 @@ function sendNotifcation( userId, intent ){
             console.log( 'notifcation post: ' + httpResponse.statusCode + ': ' + httpResponse.statusMessage);
         });
     });
+}
+
+function queueSearchRequest({ gender, age, upperBody, lowerBody, hair }) {
+    const request = {
+        age,
+        gender,
+        hairColour: hair,
+        lowerBodyClothingColor: lowerBody,
+        upperBodyClothingColor: upperBody
+    }
+
+    return new Promise((resolve, reject) => {
+        admin.database.ref('searchRequest/currentIndex')
+            .on('value', (snapshot) => {
+                const index = snapshot.val();
+
+                if (!index) {
+                    reject('No index!');
+                    return;
+                }
+
+                admin.database().ref('searchRequest/' + index)
+                    .set(request)
+                    .then(() => {
+                        const newIndex = index++;
+                        firebase.database().ref().update({
+                            'searchRequest/currentIndex': newIndex
+                        });
+                    })
+                    .catch((error) => {
+                        console.log('ERROR in setting the entry:', error);
+                    })
+            })
+    })
 }
 
 module.exports = app;

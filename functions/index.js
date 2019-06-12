@@ -19,8 +19,15 @@ Contact Info: xtopher.brandt at gmail
 
 'use strict';
 
-const app = require( './app.js' );
+const app = require('./app.js');
 const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const serviceAccount = require('./adminCred.json');
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://notificationtest-87069.firebaseio.com/"
+});
 
 // When a version of the action is submitted for Beta or Production, 
 // Actions on Google takes a snapshot of the current DiagloFlow state, including the fulfillment route.
@@ -38,3 +45,24 @@ const functions = require('firebase-functions');
 // The version of the function should match the git branch name
 
 exports.fulfillment_2019_1 = functions.https.onRequest(app);
+
+exports.getSearchRequest = functions.https.onRequest((req, res) => {
+    console.log('made the request! ');
+    const requestId = req.params[0];
+
+
+    console.log('REQ ID:', requestId);
+
+    return admin.database().ref('searchRequest/' + requestId)
+                    .on('value', (snapshot) => {
+                        const response = snapshot.val();
+                        console.log('snapshot: ', response);
+
+                        if (!response) {
+                            res.sendStatus(404)
+                            return;
+                        }
+
+                        res.send(snapshot.val());
+                    })
+});
