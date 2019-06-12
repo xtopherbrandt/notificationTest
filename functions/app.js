@@ -138,7 +138,6 @@ function getUpperBodyFromContext( context ){
 
 function addUpperBodyToParameters( value, parameters ){
     if ( value ){
-        console.log( value );
         parameters.upperBody = value;
     }
 }
@@ -163,7 +162,7 @@ function getHairFromContext( context ){
 
 function addHairToParameters( value, parameters ){
     if ( value ){
-        parameters.upperBody = value;
+        parameters.hair = value;
     }
 }
 
@@ -193,7 +192,7 @@ function startSearch( conv ){
     var parameters = convertContextToParameterSet( context );
 
     var response = `Got it! A search has been initiated`;
-
+    
     response = addGenderToResponse( parameters, response );
     response = addAgeToResponse( parameters, response );
     response = addUpperBodyToResponse( parameters, response );
