@@ -26,7 +26,7 @@ const moment = require( 'moment' );
 
 const {google} = require('googleapis');
 const request = require('request');
-const PATH_TO_KEY = './notificationTest-e2c4bfb681b4.json'; // <--- Do not put this key into Git Hub, it is a private key
+const PATH_TO_KEY = './notificationTest-d461517c012c.json'; // <--- Do not put this key into Git Hub, it is a private key
 const key = require(PATH_TO_KEY);
 
 process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
@@ -40,12 +40,16 @@ app.intent('Default Fallback Intent', fallback );
 
 app.intent('Send Notification', testNotification);
 app.intent('Current Time', currentTime);
+app.intent('Start Search', startSearch);
+app.intent('Saved View', savedView);
+
 app.intent('Setup Push Notifications', setupNotification );
 app.intent('Finish Push Setup', finishNotificationSetup );
 
 const welcomeSuggestions = [
     'Send Notification',
-    'Current Time'
+    'Current Time',
+    'Start Search'
 ]
 
 function welcome(conv) {
@@ -76,8 +80,8 @@ function getDayPartName(){
 
 function fallback(conv) {
     conv.ask(new SimpleResponse({
-        speech: `Sorry, I didn't catch that. You can ask questions like, 'Is Whiskey Jack groomed?' or 'What's the wait time at Harmony'. Or just say a run or lift name and I'll tell you it's status.`,
-        text: `Sorry, I don't quite understand. You can ask questions like, 'Is Whiskey Jack groomed?' or 'What's the wait time at Harmony'. Or just say a run or lift name and I'll tell you it's status.`,
+        speech: `Sorry, I didn't catch that.`,
+        text: `Sorry, I don't quite understand.`,
     }));
     
     conv.ask(new Suggestions(welcomeSuggestions));
@@ -95,10 +99,177 @@ function currentTime( conv ){
     var currentTime = moment().format("h:mm:ss a");
     var currentDate = moment().format("dddd, MMMM Do YYYY");
     var response = `It is currently ${currentTime} on ${currentDate}`;
-    console.log( response );
+    //console.log( response );
     conv.close( new SimpleResponse({
         speech: response,
         text: response
+    }));
+}
+
+function getStartSearchContext( conv ){
+    return conv.contexts.get( 'start_search' );
+}
+
+function getGenderFromContext( context ){
+    if ( context ){
+        if ( context.parameters.Gender ){
+            return context.parameters.Gender;
+        }
+        else if ( context.parameters.adult_female || context.parameters.child_female ){
+            return 'Female';
+        }
+        else if ( context.parameters.adult_male || context.parameters.child_male ){
+            return 'Male';
+        }
+    }
+}
+
+function addGenderToParameters( value, parameters ){
+    if ( value ){
+        parameters.gender = value;
+    }
+}
+
+function getUpperBodyFromContext( context ){
+    if ( context ){
+        return context.parameters.UpperBody;
+    }
+}
+
+function addUpperBodyToParameters( value, parameters ){
+    if ( value ){
+        console.log( value );
+        parameters.upperBody = value;
+    }
+}
+
+function getLowerBodyFromContext( context ){
+    if ( context ){
+        return context.parameters.LowerBody;
+    }
+}
+
+function addLowerBodyToParameters( value, parameters ){
+    if ( value ){
+        parameters.lowerBody = value;
+    }
+}
+
+function getHairFromContext( context ){
+    if ( context ){
+        return context.parameters.Hair;
+    }
+}
+
+function addHairToParameters( value, parameters ){
+    if ( value ){
+        parameters.upperBody = value;
+    }
+}
+
+function getAgeFromContext( context ){
+    if ( context ){
+        if ( context.parameters.CoarseAge ){
+            return context.parameters.CoarseAge;
+        }
+        else if ( context.parameters.adult_female || context.parameters.adult_male ){
+            return 'adult';
+        }
+        else if ( context.parameters.child_female || context.parameters.child_male ){
+            return 'child';
+        }
+    }
+}
+
+function addAgeToParameters( value, parameters ){
+    if ( value ){
+        parameters.age = value;
+    }
+}
+
+function startSearch( conv ){
+
+    var context = getStartSearchContext( conv );
+    var parameters = convertContextToParameterSet( context );
+
+    var response = `Got it! A search has been initiated`;
+
+    response = addGenderToResponse( parameters, response );
+    response = addAgeToResponse( parameters, response );
+    response = addUpperBodyToResponse( parameters, response );
+    response = addLowerBodyToResponse( parameters, response );
+    response = addHairToResponse( parameters, response );
+
+    conv.close( new SimpleResponse({
+        speech: response,
+        text: response
+    }));
+}
+
+function convertContextToParameterSet( context ){
+    var parameters = {};
+        
+    addGenderToParameters( getGenderFromContext( context ), parameters );
+    addUpperBodyToParameters( getUpperBodyFromContext( context ), parameters );
+    addLowerBodyToParameters( getLowerBodyFromContext( context ), parameters );
+    addHairToParameters( getHairFromContext( context ), parameters );
+    addAgeToParameters( getAgeFromContext( context ), parameters );
+
+    return parameters;
+
+}
+
+function addGenderToResponse( parameters, response ){
+
+    if (parameters.gender){
+        response += ` for a ${parameters.gender}`;
+    }
+    
+    return response;
+}
+
+function addAgeToResponse( parameters, response ){
+
+    if (parameters.age){
+        response += ` ${parameters.age}`;
+    }
+    
+    return response;
+}
+
+function addUpperBodyToResponse( parameters, response ){
+   
+    if (parameters.upperBody){
+        response += ` wearing a ${parameters.upperBody.ClothingColor} ${parameters.upperBody.UpperBodyType}`;
+    }
+    
+    return response;
+}
+
+function addLowerBodyToResponse( parameters, response ){
+   
+    if (parameters.lowerBody){
+        response += ` wearing ${parameters.lowerBody.ClothingColor} ${parameters.lowerBody.LowerBodyType}`;
+    }
+    
+    return response;
+}
+
+function addHairToResponse( parameters, response ){
+   
+    if (parameters.hair){
+        response += ` with ${parameters.hair.HairColor} ${parameters.hair.HairType}`;
+    }
+    
+    return response;
+}
+
+
+function savedView( conv ){
+
+    conv.close( new SimpleResponse({
+        speech: "Opening a saved view",
+        text: "Opening a saved view"
     }));
 }
 
