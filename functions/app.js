@@ -40,7 +40,7 @@ const serviceAccount = require('./adminCred.json');
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: "https://notificationtest-87069.firebaseio.com/"
-});
+}, "fulfillment" );
 
 
 app.intent('Queue Search Request', queueSearchRequest);
@@ -148,7 +148,7 @@ function getUpperBodyFromContext( context ){
 
 function addUpperBodyToParameters( value, parameters ){
     if ( value ){
-        parameters.upperBody = value;
+        parameters.upperBodyClothingColor = value;
     }
 }
 
@@ -160,19 +160,19 @@ function getLowerBodyFromContext( context ){
 
 function addLowerBodyToParameters( value, parameters ){
     if ( value ){
-        parameters.lowerBody = value;
+        parameters.lowerBodyClothingColor = value;
     }
 }
 
-function getHairFromContext( context ){
+function getHairColorFromContext( context ){
     if ( context ){
-        return context.parameters.Hair;
+        return context.parameters.Hair.HairColor;
     }
 }
 
-function addHairToParameters( value, parameters ){
+function addHairColorToParameters( value, parameters ){
     if ( value ){
-        parameters.hair = value;
+        parameters.hairColour = value;
     }
 }
 
@@ -201,18 +201,25 @@ function startSearch( conv ){
     var context = getStartSearchContext( conv );
     var parameters = convertContextToParameterSet( context );
 
-    var response = `Got it! A search has been initiated`;
+    return queueSearchRequest(parameters)
+        .then(() => {
+            var response = `Got it! A search has been initiated`;
     
-    response = addGenderToResponse( parameters, response );
-    response = addAgeToResponse( parameters, response );
-    response = addUpperBodyToResponse( parameters, response );
-    response = addLowerBodyToResponse( parameters, response );
-    response = addHairToResponse( parameters, response );
+            response = addGenderToResponse( parameters, response );
+            response = addAgeToResponse( parameters, response );
+            response = addUpperBodyToResponse( parameters, response );
+            response = addLowerBodyToResponse( parameters, response );
+            response = addHairToResponse( parameters, response );
+        
+            conv.close( new SimpleResponse({
+                speech: response,
+                text: response
+            }));
 
-    conv.close( new SimpleResponse({
-        speech: response,
-        text: response
-    }));
+            resolve();
+        })
+        .catch(error => console.log('ERROR in queueSearchRequest', error));
+   
 }
 
 function convertContextToParameterSet( context ){
@@ -221,7 +228,7 @@ function convertContextToParameterSet( context ){
     addGenderToParameters( getGenderFromContext( context ), parameters );
     addUpperBodyToParameters( getUpperBodyFromContext( context ), parameters );
     addLowerBodyToParameters( getLowerBodyFromContext( context ), parameters );
-    addHairToParameters( getHairFromContext( context ), parameters );
+    addHairColorToParameters( getHairColorFromContext( context ), parameters );
     addAgeToParameters( getAgeFromContext( context ), parameters );
 
     return parameters;
@@ -351,21 +358,22 @@ function sendNotifcation( userId, intent ){
     });
 }
 
-function queueSearchRequest({ gender, age, upperBody, lowerBody, hair }) {
-    const request = {
-        age,
-        gender,
-        hairColour: hair,
-        lowerBodyClothingColor: lowerBody,
-        upperBodyClothingColor: upperBody
-    }
+function queueSearchRequest(request) {
+    // const request = {};
+    // age,
+    // gender,
+    // hairColour: hair,
+    // lowerBodyClothingColor: lowerBody,
+    // upperBodyClothingColor: upperBody
 
     return new Promise((resolve, reject) => {
-        admin.database.ref('searchRequest/currentIndex')
-            .on('value', (snapshot) => {
+        admin.database().ref('searchRequest/currentIndex')
+            .once('value').then( (snapshot) => {
                 const index = snapshot.val();
 
-                if (!index) {
+                console.log('Index is: ', index);
+
+                if (!index && index !== 0) {
                     reject('No index!');
                     return;
                 }
@@ -373,14 +381,25 @@ function queueSearchRequest({ gender, age, upperBody, lowerBody, hair }) {
                 admin.database().ref('searchRequest/' + index)
                     .set(request)
                     .then(() => {
-                        const newIndex = index++;
-                        firebase.database().ref().update({
+                        let newIndex = index + 1;
+                        admin.database().ref().update({
                             'searchRequest/currentIndex': newIndex
+                        })
+                        .then((something) => {
+                            console.log('Successful increment: ', newIndex);
+                            console.log('Update returned: ', something);
+                            resolve();
                         });
+    
                     })
                     .catch((error) => {
                         console.log('ERROR in setting the entry:', error);
+                        reject(error);
                     })
+            })
+            .catch( (error) => {
+                console.log('ERROR in getting the entry:', error);
+                reject(error);
             })
     })
 }
