@@ -132,39 +132,39 @@ function addGenderToParameters( value, parameters ){
     }
 }
 
-function getUpperBodyFromContext( context ){
-    if ( context ){
-        return context.parameters.UpperBody;
+function getUpperBodyColorFromContext( context ){
+    if ( context.parameters.UpperBody ){
+        return context.parameters.UpperBody.ClothingColor;
     }
 }
 
-function addUpperBodyToParameters( value, parameters ){
+function addUpperBodyColorToParameters( value, parameters ){
     if ( value ){
         parameters.upperBodyClothingColor = value;
     }
 }
 
-function getLowerBodyFromContext( context ){
-    if ( context ){
-        return context.parameters.LowerBody;
+function getLowerBodyColorFromContext( context ){
+    if ( context.parameters.LowerBody ){
+        return context.parameters.LowerBody.ClothingColor;
     }
 }
 
-function addLowerBodyToParameters( value, parameters ){
+function addLowerBodyColorToParameters( value, parameters ){
     if ( value ){
         parameters.lowerBodyClothingColor = value;
     }
 }
 
 function getHairColorFromContext( context ){
-    if ( context ){
+    if ( context.parameters.Hair && context.parameters.Hair.HairColor ){
         return context.parameters.Hair.HairColor;
     }
 }
 
 function addHairColorToParameters( value, parameters ){
     if ( value ){
-        parameters.hairColour = value;
+        parameters.hairColor = value;
     }
 }
 
@@ -213,7 +213,6 @@ function startSearch( conv ){
                 text: response
             }));
 
-            resolve();
         })
         .catch(error => console.log('ERROR in queueSearchRequest', error));
    
@@ -223,8 +222,8 @@ function convertContextToParameterSet( context ){
     var parameters = {};
         
     addGenderToParameters( getGenderFromContext( context ), parameters );
-    addUpperBodyToParameters( getUpperBodyFromContext( context ), parameters );
-    addLowerBodyToParameters( getLowerBodyFromContext( context ), parameters );
+    addUpperBodyColorToParameters( getUpperBodyColorFromContext( context ), parameters );
+    addLowerBodyColorToParameters( getLowerBodyColorFromContext( context ), parameters );
     addHairColorToParameters( getHairColorFromContext( context ), parameters );
     addAgeToParameters( getAgeFromContext( context ), parameters );
 
@@ -252,8 +251,8 @@ function addAgeToResponse( parameters, response ){
 
 function addUpperBodyToResponse( parameters, response ){
    
-    if (parameters.upperBody){
-        response += ` wearing a ${parameters.upperBody.ClothingColor} ${parameters.upperBody.UpperBodyType}`;
+    if (parameters.upperBodyClothingColor){
+        response += ` wearing ${parameters.upperBodyClothingColor} on their upper body`;
     }
     
     return response;
@@ -261,8 +260,8 @@ function addUpperBodyToResponse( parameters, response ){
 
 function addLowerBodyToResponse( parameters, response ){
    
-    if (parameters.lowerBody){
-        response += ` wearing ${parameters.lowerBody.ClothingColor} ${parameters.lowerBody.LowerBodyType}`;
+    if (parameters.lowerBodyClothingColor){
+        response += ` wearing ${parameters.lowerBodyClothingColor} on thier lower body`;
     }
     
     return response;
@@ -270,8 +269,8 @@ function addLowerBodyToResponse( parameters, response ){
 
 function addHairToResponse( parameters, response ){
    
-    if (parameters.hair){
-        response += ` with ${parameters.hair.HairColor} ${parameters.hair.HairType}`;
+    if (parameters.hairColor){
+        response += ` with ${parameters.hairColor} hair`;
     }
     
     return response;
