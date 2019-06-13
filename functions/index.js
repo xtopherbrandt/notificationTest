@@ -47,15 +47,51 @@ exports.getSearchRequest = functions.https.onRequest((req, res) => {
     console.log('REQ ID:', requestId);
 
     return admin.database().ref('searchRequest/' + requestId)
-                    .on('value', (snapshot) => {
-                        const response = snapshot.val();
-                        console.log('snapshot: ', response);
+        .on('value', (snapshot) => {
+            const response = snapshot.val();
+            console.log('snapshot: ', response);
 
-                        if (!response) {
-                            res.sendStatus(404)
-                            return;
-                        }
+            if (!response) {
+                res.sendStatus(404)
+                return;
+            }
 
-                        res.send(snapshot.val());
+            res.send(snapshot.val());
+        })
+});
+
+exports.clearDatabase = functions.https.onRequest(( _, res) => {
+    console.log('WARNING: CLEANING THE DATABASE');
+ 
+    return admin.database().ref('searchRequest/currentIndex')
+        .once('value')
+        .then((snapshot) => {
+            const index = snapshot.val();
+            const updates = {};
+
+            for (let i = 0; i < index; i++) {
+                updates[i] = null;
+            }
+
+            admin.database().ref()
+                .update(updates)
+                .then(() => {
+                    admin.database().ref().update({
+                        'searchRequest/currentIndex': 0
                     })
+                    .then((something) => {
+                        console.log('Successful increment: ', newIndex);
+                        console.log('Update returned: ', something);
+                        res.sendStatus(200);
+                    });
+                })
+                .catch((error) => {
+                    console.log('ERROR in updating the currentIndex to 0:', error);
+                    res.sendStatus(400);
+                })
+        })
+        .catch((error) => {
+            console.log('ERROR in getting the currentIndex:', error);
+            res.sendStatus(400);
+        })
 });
