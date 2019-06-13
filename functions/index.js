@@ -60,7 +60,7 @@ exports.getSearchRequest = functions.https.onRequest((req, res) => {
         })
 });
 
-exports.clearDatabase = functions.https.onRequest(( _, res) => {
+exports.detergent = functions.https.onRequest(( _, res) => {
     console.log('WARNING: CLEANING THE DATABASE');
  
     return admin.database().ref('searchRequest/currentIndex')
@@ -70,8 +70,10 @@ exports.clearDatabase = functions.https.onRequest(( _, res) => {
             const updates = {};
 
             for (let i = 0; i < index; i++) {
-                updates[i] = null;
+                updates['searchRequest/' + i] = null;
             }
+
+            console.log('UPDATES: ', JSON.stringify(updates));
 
             admin.database().ref()
                 .update(updates)
@@ -80,7 +82,6 @@ exports.clearDatabase = functions.https.onRequest(( _, res) => {
                         'searchRequest/currentIndex': 0
                     })
                     .then((something) => {
-                        console.log('Successful increment: ', newIndex);
                         console.log('Update returned: ', something);
                         res.sendStatus(200);
                     });
