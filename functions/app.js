@@ -549,6 +549,19 @@ function openSavedView( conv ){
     var parameters = {};
     addOpenSavedViewParameters( getOpenSavedViewFromContext( context), parameters );
 
+    if ( !parameters.openSavedView ){
+        console.log( `Didn't get a saved view name` );
+
+        var response = `Sorry, I didn't catch the name of the saved view`;
+        
+        conv.ask( new SimpleResponse({
+            speech: response,
+            text: response
+        }));
+
+        return;
+    }
+    
     console.log( `Opening Saved View '${parameters.openSavedView}` );
 
     return queueSearchRequest(parameters)
@@ -571,9 +584,7 @@ function openSavedView( conv ){
 function lookForFoodFairy( conv ){
 
     var parameters = {
-        person: 'Food Fairy',
-        track: true,
-        location: '2nd Floor'
+        person: 'Food Fairy'
     }
 
     console.log( 'Find Food Fairy' );
@@ -622,7 +633,7 @@ function startTracking( conv ){
 }
 
 function notifyOnLiftStatus( conv ){
-    console.log( 'Notify When A Lift Status Changes');
+    console.log( 'Notify me on alarm');
 }
 
 function setupNotification( conv ){
