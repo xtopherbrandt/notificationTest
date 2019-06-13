@@ -35,15 +35,21 @@ const app = dialogflow({debug: true});
 
 const admin = require('./initApp');
 
-app.intent('Queue Search Request', queueSearchRequest);
-
 app.intent('Default Welcome Intent', welcome );
 app.intent('Default Fallback Intent', fallback );
 
 app.intent('Send Notification', testNotification);
 app.intent('Current Time', currentTime);
 app.intent('Start Search', startSearch);
+app.intent('Star Result', starResult);
 app.intent('Saved View', savedView);
+app.intent('Add Hair Facet', addFacet);
+app.intent('Add Upper Body Facet', addFacet );
+app.intent('Add Lower Body Facet', addFacet );
+app.intent('Add Age Facet', addFacet );
+app.intent('Add Gender Facet', addFacet );
+app.intent('Add Search Time', addFacet );
+app.intent('Remove Facet', removeFacet);
 
 app.intent('Setup Push Notifications', setupNotification );
 app.intent('Finish Push Setup', finishNotificationSetup );
@@ -170,14 +176,15 @@ function addHairColorToParameters( value, parameters ){
 
 function getAgeFromContext( context ){
     if ( context ){
-        if ( context.parameters.CoarseAge ){
-            return context.parameters.CoarseAge;
-        }
-        else if ( context.parameters.adult_female || context.parameters.adult_male ){
+        if ( context.parameters.adult_female || context.parameters.adult_male ){
+            console.log( 'adult' );
             return 'adult';
         }
         else if ( context.parameters.child_female || context.parameters.child_male ){
             return 'child';
+        }
+        else if ( context.parameters.CoarseAge ){
+            return context.parameters.CoarseAge;
         }
     }
 }
@@ -187,6 +194,41 @@ function addAgeToParameters( value, parameters ){
         parameters.age = value;
     }
 }
+
+function getTimeRangeFromContext( context ){
+
+    if ( context.parameters.DateTime && context.parameters.DateTime["date-time"] ){
+        return context.parameters.DateTime["date-time"];
+    }
+}
+
+function addTimeRangeToParameters( value, parameters ){
+    if ( value.startDateTime && value.endDateTime ){
+        parameters.startTime = value.startDateTime;
+        parameters.endTime = value.endDateTime;
+
+        console.log ( `Time Range: ${parameters.startTime} - ${parameters.endTime}` );
+    }
+}
+
+function getStarredResultNumberFromContext( context ){
+    if ( context.parameters.resultNumber ){
+        return context.parameters.resultNumber;
+    }
+}
+
+function addStarredResultToParameters( value, parameters ){
+    if (value){
+        parameters.starredResultNumber = value;
+    }
+}
+
+function getFacetToRemoveFromContext( context ){
+    if ( context.parameters.facetToRemove ){
+        return context.parameters.facetToRemove;
+    }
+}
+
 
 function startSearch( conv ){
 
@@ -205,10 +247,12 @@ function startSearch( conv ){
             response = addUpperBodyToResponse( parameters, response );
             response = addLowerBodyToResponse( parameters, response );
             response = addHairToResponse( parameters, response );
+            response = addTimeRangeToResponse( parameters, response );
             
+            response += '. You can add or remove facets and star results to continue.'
             console.log( response );
 
-            conv.close( new SimpleResponse({
+            conv.ask( new SimpleResponse({
                 speech: response,
                 text: response
             }));
@@ -218,6 +262,39 @@ function startSearch( conv ){
    
 }
 
+function addFacet( conv ){
+
+    var context = getStartSearchContext( conv );
+    var parameters = convertContextToParameterSet( context );
+
+    console.log( `Add Facet` );
+    console.log( `  context: ${JSON.stringify(context)}`);
+
+    return queueSearchRequest(parameters)
+        .then(() => {
+
+            var response = `No problem, updating the search `;
+    
+            response = addGenderToResponse( parameters, response );
+            response = addAgeToResponse( parameters, response );
+            response = addUpperBodyToResponse( parameters, response );
+            response = addLowerBodyToResponse( parameters, response );
+            response = addHairToResponse( parameters, response );
+            response = addTimeRangeToResponse( parameters, response );
+            
+            console.log( response );
+
+            conv.ask( new SimpleResponse({
+                speech: response,
+                text: response
+            }));
+
+        })
+        .catch(error => console.log('ERROR in queueSearchRequest', error));
+   
+}
+
+
 function convertContextToParameterSet( context ){
     var parameters = {};
         
@@ -226,6 +303,8 @@ function convertContextToParameterSet( context ){
     addLowerBodyColorToParameters( getLowerBodyColorFromContext( context ), parameters );
     addHairColorToParameters( getHairColorFromContext( context ), parameters );
     addAgeToParameters( getAgeFromContext( context ), parameters );
+    addTimeRangeToParameters( getTimeRangeFromContext( context ), parameters );
+    addStarredResultToParameters( getStarredResultNumberFromContext( context ), parameters );
 
     return parameters;
 
@@ -261,7 +340,7 @@ function addUpperBodyToResponse( parameters, response ){
 function addLowerBodyToResponse( parameters, response ){
    
     if (parameters.lowerBodyClothingColor){
-        response += ` wearing ${parameters.lowerBodyClothingColor} on thier lower body`;
+        response += ` wearing ${parameters.lowerBodyClothingColor} on their lower body`;
     }
     
     return response;
@@ -276,6 +355,120 @@ function addHairToResponse( parameters, response ){
     return response;
 }
 
+function addTimeRangeToResponse( parameters, response ){
+   
+    if (parameters.startTime){
+        var startTime = moment( parameters.startTime ).format("MMM D H:mm");
+        var endTime = moment( parameters.endTime ).format("MMM D H:mm");
+
+        response += ` between ${startTime} and ${endTime}`;
+    }
+    
+    return response;
+}
+
+function starResult( conv ){
+
+    var context = getStartSearchContext( conv );
+    var parameters = convertContextToParameterSet( context );
+
+    console.log( 'Star Result' );
+
+    return queueSearchRequest(parameters)
+        .then(() => {
+
+            var response = `Ok, `;
+    
+            response = addStarredResultToResponse( parameters, response );
+            
+            console.log( response );
+
+            conv.ask( new SimpleResponse({
+                speech: response,
+                text: response
+            }));
+
+        })
+        .catch(error => console.log('ERROR in queueSearchRequest', error));
+   
+}
+
+function addStarredResultToResponse( parameters, response ){
+   
+    if (parameters.starredResultNumber){
+
+        response += ` starring result ${parameters.starredResultNumber}`;
+    }
+    
+    return response;
+}
+
+function removeFacetFromParmeters( parameters, facet ){
+    switch( facet ){
+        case 'Age':
+        {           
+            delete parameters.age;
+            break;
+        }
+        case 'Gender':
+        {           
+            delete parameters.gender;
+            break;
+        }
+        case 'Hair':
+        {           
+            delete parameters.hairColor;
+            break;
+        }
+        case 'UpperBody':
+        {           
+            delete parameters.upperBodyClothingColor;
+            break;
+        }
+        case 'LowerBody':
+        {           
+            delete parameters.lowerBodyClothingColor;
+            break;
+        }
+    }
+
+    return parameters;
+}
+
+function removeFacet( conv ){
+    
+    var context = getStartSearchContext( conv );
+    var parameters = convertContextToParameterSet( context );
+    var facetToRemove = getFacetToRemoveFromContext( context );
+
+    console.log( `Remove Facet : ${facetToRemove}` );
+
+    parameters = removeFacetFromParmeters( parameters, facetToRemove );
+
+    return queueSearchRequest(parameters)
+        .then(() => {
+
+            var response = `Removing `;
+    
+            response = addRemovedFacetToResponse( facetToRemove, response );
+            
+            console.log( response );
+
+            conv.ask( new SimpleResponse({
+                speech: response,
+                text: response
+            }));
+
+        })
+        .catch(error => console.log('ERROR in queueSearchRequest', error));
+}
+
+function addRemovedFacetToResponse( facetToRemove, response ){
+
+    response += ` ${facetToRemove}`;
+    
+    return response;
+}
 
 function savedView( conv ){
 
@@ -367,23 +560,24 @@ function queueSearchRequest(request) {
             .once('value').then( (snapshot) => {
                 const index = snapshot.val();
 
-                console.log('Index is: ', index);
-
                 if (!index && index !== 0) {
                     reject('No index!');
                     return;
                 }
 
+                console.log( `Adding Entry ${index} : ${JSON.stringify(request)}` );
+
                 admin.database().ref('searchRequest/' + index)
                     .set(request)
                     .then(() => {
                         let newIndex = index + 1;
+
+                        console.log( '  Added. Updating index.' );
+
                         admin.database().ref().update({
                             'searchRequest/currentIndex': newIndex
                         })
                         .then((something) => {
-                            console.log('Successful increment: ', newIndex);
-                            console.log('Update returned: ', something);
                             resolve();
                         });
     
