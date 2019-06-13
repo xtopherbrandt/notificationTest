@@ -42,7 +42,6 @@ app.intent('Send Notification', testNotification);
 app.intent('Current Time', currentTime);
 app.intent('Start Search', startSearch);
 app.intent('Star Result', starResult);
-app.intent('Saved View', savedView);
 app.intent('Add Hair Facet', addFacet);
 app.intent('Add Upper Body Facet', addFacet );
 app.intent('Add Lower Body Facet', addFacet );
@@ -50,6 +49,11 @@ app.intent('Add Age Facet', addFacet );
 app.intent('Add Gender Facet', addFacet );
 app.intent('Add Search Time', addFacet );
 app.intent('Remove Facet', removeFacet);
+app.intent('Add Location', addFacet );
+app.intent('Start Tracking', startTracking);
+
+app.intent('Look For Food Fairy', lookForFoodFairy);
+app.intent('Open Saved View', openSavedView );
 
 app.intent('Setup Push Notifications', setupNotification );
 app.intent('Finish Push Setup', finishNotificationSetup );
@@ -116,6 +120,17 @@ function currentTime( conv ){
 
 function getStartSearchContext( conv ){
     return conv.contexts.get( 'start_search' );
+}
+
+function getSavedViewContext( conv ){
+    return conv.contexts.get( 'saved_view' );
+}
+
+function removeParameterFromContext( conv, parameterName ){
+    var parameters = getStartSearchContext( conv ).parameters;
+    delete parameters[ parameterName ];
+
+    conv.contexts.set( 'start_search', 5, parameters );
 }
 
 function getGenderFromContext( context ){
@@ -203,7 +218,7 @@ function getTimeRangeFromContext( context ){
 }
 
 function addTimeRangeToParameters( value, parameters ){
-    if ( value.startDateTime && value.endDateTime ){
+    if ( value && value.startDateTime && value.endDateTime ){
         parameters.startTime = value.startDateTime;
         parameters.endTime = value.endDateTime;
 
@@ -229,6 +244,30 @@ function getFacetToRemoveFromContext( context ){
     }
 }
 
+function getLocationFromContext( context ){
+    if ( context.parameters.CameraLocation ){
+        return context.parameters.CameraLocation;
+    }
+}
+
+function addLocationParameters( value, parameters ){
+    if (value){
+        parameters.location = value;
+    }  
+}
+
+function getOpenSavedViewFromContext( context ){
+
+    if ( context.parameters.openSavedView ){
+        return context.parameters.openSavedView;
+    }
+}
+
+function addOpenSavedViewParameters( value, parameters ){
+    if (value){
+        parameters.openSavedView = value;
+    }  
+}
 
 function startSearch( conv ){
 
@@ -281,6 +320,7 @@ function addFacet( conv ){
             response = addLowerBodyToResponse( parameters, response );
             response = addHairToResponse( parameters, response );
             response = addTimeRangeToResponse( parameters, response );
+            response = addLocationToResponse( parameters, response );
             
             console.log( response );
 
@@ -305,6 +345,7 @@ function convertContextToParameterSet( context ){
     addAgeToParameters( getAgeFromContext( context ), parameters );
     addTimeRangeToParameters( getTimeRangeFromContext( context ), parameters );
     addStarredResultToParameters( getStarredResultNumberFromContext( context ), parameters );
+    addLocationParameters( getLocationFromContext( context ), parameters );
 
     return parameters;
 
@@ -403,6 +444,16 @@ function addStarredResultToResponse( parameters, response ){
     return response;
 }
 
+function addLocationToResponse( parameters, response ){
+   
+    if (parameters.location){
+
+        response += ` looking on ${parameters.location} cameras`;
+    }
+    
+    return response;
+}
+
 function removeFacetFromParmeters( parameters, facet ){
     switch( facet ){
         case 'Age':
@@ -454,6 +505,8 @@ function removeFacet( conv ){
             
             console.log( response );
 
+            removeParameterFromContext( conv, facetToRemove );
+
             conv.ask( new SimpleResponse({
                 speech: response,
                 text: response
@@ -470,12 +523,83 @@ function addRemovedFacetToResponse( facetToRemove, response ){
     return response;
 }
 
-function savedView( conv ){
+function openSavedView( conv ){
+    
+    var context = getSavedViewContext( conv );
+    
+    var parameters = {};
+    addOpenSavedViewParameters( getOpenSavedViewFromContext( context), parameters );
 
-    conv.close( new SimpleResponse({
-        speech: "Opening a saved view",
-        text: "Opening a saved view"
-    }));
+    console.log( `Opening Saved View '${parameters.openSavedView}` );
+
+    return queueSearchRequest(parameters)
+        .then(() => {
+
+            var response = `Here you go. Opening saved view ${parameters.openSavedView}`;
+            
+            console.log( response );
+
+            conv.ask( new SimpleResponse({
+                speech: response,
+                text: response
+            }));
+
+        })
+        .catch(error => console.log('ERROR in queueSearchRequest', error));
+   
+}
+
+function lookForFoodFairy( conv ){
+
+    var parameters = {
+        person: 'Food Fairy',
+        track: true,
+        location: '2nd Floor'
+    }
+
+    console.log( 'Find Food Fairy' );
+
+    return queueSearchRequest(parameters)
+        .then(() => {
+
+            var response = `You got it! Now stalking the food fairy.`;
+            
+            console.log( response );
+
+            conv.ask( new SimpleResponse({
+                speech: response,
+                text: response
+            }));
+
+        })
+        .catch(error => console.log('ERROR in queueSearchRequest', error));
+   
+}
+
+function startTracking( conv ){
+    
+    var context = getStartSearchContext( conv );
+    var parameters = convertContextToParameterSet( context );
+
+    console.log( `Start Tracking` );
+
+    parameters = convertContextToParameterSet( context );
+    parameters.track = true;
+
+    return queueSearchRequest(parameters)
+        .then(() => {
+
+            var response = `Ok, tracking this person.`;
+               
+            console.log( response );
+
+            conv.ask( new SimpleResponse({
+                speech: response,
+                text: response
+            }));
+
+        })
+        .catch(error => console.log('ERROR in queueSearchRequest', error));
 }
 
 function notifyOnLiftStatus( conv ){
