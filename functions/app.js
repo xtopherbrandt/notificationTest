@@ -678,6 +678,10 @@ function queueSearchRequest(request) {
     // hairColour: hair,
     // lowerBodyClothingColor: lowerBody,
     // upperBodyClothingColor: upperBody
+    if (!Object.keys(request).length) {
+        console.log('REQUEST IS EMPTY: ', JSON.stringify(request));
+        return new Promise((resolve, reject) => resolve());
+    }
 
     return new Promise((resolve, reject) => {
         admin.database().ref('searchRequest/currentIndex')
