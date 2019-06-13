@@ -42,14 +42,14 @@ app.intent('Send Notification', testNotification);
 app.intent('Current Time', currentTime);
 app.intent('Start Search', startSearch);
 app.intent('Star Result', starResult);
-app.intent('Add Hair Facet', addFacet);
-app.intent('Add Upper Body Facet', addFacet );
-app.intent('Add Lower Body Facet', addFacet );
-app.intent('Add Age Facet', addFacet );
-app.intent('Add Gender Facet', addFacet );
-app.intent('Add Search Time', addFacet );
+app.intent('Add Hair Facet', addHairFacet);
+app.intent('Add Upper Body Facet', addUpperBodyFacet );
+app.intent('Add Lower Body Facet', addLowerBodyFacet );
+app.intent('Add Age Facet', addAgeFacet );
+app.intent('Add Gender Facet', addGenderFacet );
+app.intent('Add Search Time', addTimeFacet );
 app.intent('Remove Facet', removeFacet);
-app.intent('Add Location', addFacet );
+app.intent('Add Location', addLocationFacet );
 app.intent('Start Tracking', startTracking);
 
 app.intent('Look For Food Fairy', lookForFoodFairy);
@@ -154,8 +154,8 @@ function addGenderToParameters( value, parameters ){
 }
 
 function getUpperBodyColorFromContext( context ){
-    if ( context.parameters.UpperBody ){
-        return context.parameters.UpperBody.ClothingColor;
+    if ( context.parameters.UpperBodyColor ){
+        return context.parameters.UpperBodyColor;
     }
 }
 
@@ -166,8 +166,8 @@ function addUpperBodyColorToParameters( value, parameters ){
 }
 
 function getLowerBodyColorFromContext( context ){
-    if ( context.parameters.LowerBody ){
-        return context.parameters.LowerBody.ClothingColor;
+    if ( context.parameters.LowerBodyColor ){
+        return context.parameters.LowerBodyColor;
     }
 }
 
@@ -288,7 +288,7 @@ function startSearch( conv ){
             response = addHairToResponse( parameters, response );
             response = addTimeRangeToResponse( parameters, response );
             
-            response += '. You can add or remove facets and star results to continue.'
+            response += '. How would you like to refine the results?'
             console.log( response );
 
             conv.ask( new SimpleResponse({
@@ -301,26 +301,45 @@ function startSearch( conv ){
    
 }
 
-function addFacet( conv ){
+function addHairFacet( conv ){
+    return addFacet( conv, 'Adding hair color' );
+}
+
+function addAgeFacet( conv ){
+    return addFacet( conv, 'Adding age.' );
+}
+
+function addGenderFacet( conv ){
+    return addFacet( conv, 'Adding gender.' );
+}
+
+function addUpperBodyFacet( conv ){
+    return addFacet( conv, 'Adding upper clothing color.' );
+}
+
+function addLowerBodyFacet( conv ){
+    return addFacet( conv, 'Adding lower clothing color.' );
+}
+
+function addTimeFacet( conv ){
+    return addFacet( conv, 'Setting search time range.' );
+}
+
+function addLocationFacet( conv ){
+    return addFacet( conv, 'Refining location.' );
+}
+
+function addFacet( conv, response ){
 
     var context = getStartSearchContext( conv );
     var parameters = convertContextToParameterSet( context );
 
-    console.log( `Add Facet` );
+    console.log( `Add Facet: ${response}` );
     console.log( `  context: ${JSON.stringify(context)}`);
+    console.log( `  parameters: ${JSON.stringify(parameters)}`);
 
     return queueSearchRequest(parameters)
         .then(() => {
-
-            var response = `No problem, updating the search `;
-    
-            response = addGenderToResponse( parameters, response );
-            response = addAgeToResponse( parameters, response );
-            response = addUpperBodyToResponse( parameters, response );
-            response = addLowerBodyToResponse( parameters, response );
-            response = addHairToResponse( parameters, response );
-            response = addTimeRangeToResponse( parameters, response );
-            response = addLocationToResponse( parameters, response );
             
             console.log( response );
 
